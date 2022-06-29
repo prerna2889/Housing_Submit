@@ -1,35 +1,176 @@
-version: '2.1'
-orbs:
-  aws-eks: circleci/aws-eks@<<pipeline.parameters.dev-orb-version>>
-  kubernetes: circleci/kubernetes@1.3
 jobs:
-  test-cluster:
+  lint-docker:
     docker:
-      - image: 'cimg/python:3.10'
+      - image: circleci/python:3.7.3-stretch
+        environment:
+          FLASK_CONFIG: testing
+    working_directory: ~/repo
+    steps:
+      - checkout
+      - run:
+          name: Setup python virtual environment
+          command: |
+            echo 'export IMAGE_NAME=capstone_image' >> $BASH_ENV
+            virtualenv capostoneenv
+            . capostoneenv/bin/activate
+            pip install --no-cache-dir -r requirements.txt
+      - run:
+          name: Lint blue app
+          command: |
+            . capostoneenv/bin/activate
+            cd blue
+            wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+            chmod +x ./hadolint
+            ./hadolint Dockerfile
+            pylint --disable=R,C,W1203,W1202 capstone_hello_world.py
+      - run:
+          name: Lint green app
+          command: |
+            . capostoneenv/bin/activate
+            cd green
+            wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+            chmod +x ./hadolint
+            ./hadolint Dockerfile
+            pylint --disable=R,C,W1203,W1202 capstone_hello_world.py
+  build-deploy-app:
+    docker:
+      - image: circleci/python:3.7.3-stretch
+        environment:
+          FLASK_CONFIG: testing
+    steps:
+      - checkout
+      - run:
+          name: Setup python virtual environment
+          command: |
+            echo 'export IMAGE_NAME=capstone' >> $BASH_ENV
+            virtualenv capostoneenv
+            . capostoneenv/bin/activate
+            pip install --no-cache-dir -r requirements.txt
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build and push blue Docker image
+          command: |
+            . capostoneenv/bin/activate
+            cd blue
+            docker build -t mjgmora/$IMAGE_NAME:blue .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            docker push mjgmora/$IMAGE_NAME:blue
+      - run:
+          name: Build and push green Docker image
+          command: |
+            . capostoneenv/bin/activate
+            cd green
+            docker build -t mjgmora/$IMAGE_NAME:green .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
+            docker push mjgmora/$IMAGE_NAME:green
+
+  create-cluster:
+    executor: aws-eks/python3
     parameters:
       cluster-name:
         description: |
           Name of the EKS cluster
         type: string
     steps:
-      - kubernetes/install:
-          kubectl-version: v1.22.0
+      - run:
+          name: Install the eksctl tool
+          command: |
+            if which eksctl > /dev/null; then
+              echo "eksctl is already installed"
+              exit 0
+            fi
+            mkdir -p eksctl_download
+            curl --silent --location --retry 5 "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" \
+              | tar xz -C eksctl_download
+            chmod +x eksctl_download/eksctl
+            SUDO=""
+            if [ $(id -u) -ne 0 ] && which sudo > /dev/null ; then
+              SUDO="sudo"
+            fi
+            $SUDO mv eksctl_download/eksctl /usr/local/bin/
+            rmdir eksctl_download
+      - aws-eks/create-cluster:
+          cluster-name: << parameters.cluster-name >>
+  test-cluster:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+    steps:
+      - checkout
+      - kubernetes/install
       - aws-eks/update-kubeconfig-with-authenticator:
           cluster-name: << parameters.cluster-name >>
       - run:
+          name: Deploy blue app in cluster
           command: |
-            kubectl get services
-          name: Test cluster
+            cd blue
+            ./run_kubernetes.sh
+      - run:
+          command: |
+            sleep 120 && kubectl get all && sleep 120
+          name: Test blue app in cluster
+      - run:
+          name: Deploy green app in cluster
+          command: |
+            cd green
+            ./run_kubernetes.sh
+      - run:
+          command: |
+            sleep 120 && kubectl get all && sleep 120
+          name: Test green app in cluster
+  delete-cluster:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+
+    steps:
+      - run:
+          name: Install the eksctl tool
+          command: |
+            if which eksctl > /dev/null; then
+              echo "eksctl is already installed"
+              exit 0
+            fi
+            mkdir -p eksctl_download
+            curl --silent --location --retry 5 "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" \
+              | tar xz -C eksctl_download
+            chmod +x eksctl_download/eksctl
+            SUDO=""
+            if [ $(id -u) -ne 0 ] && which sudo > /dev/null ; then
+              SUDO="sudo"
+            fi
+            $SUDO mv eksctl_download/eksctl /usr/local/bin/
+            rmdir eksctl_download
+      - aws-eks/delete-cluster:
+          cluster-name: << parameters.cluster-name >>
+
+orbs:
+  aws-eks: circleci/aws-eks@1.1.0
+  kubernetes: circleci/kubernetes@0.4.0
+version: 2.1
 workflows:
-  deployment:
+  capstone-workflow:
     jobs:
-      - aws-eks/create-cluster:
+      - lint-docker
+      - build-deploy-app:
+          requires:
+            - lint-docker
+      - create-cluster:
           cluster-name: my-eks-demo
+          requires:
+            - build-deploy-app
       - test-cluster:
           cluster-name: my-eks-demo
           requires:
-            - aws-eks/create-cluster
-      - aws-eks/delete-cluster:
+            - create-cluster
+      - delete-cluster:
           cluster-name: my-eks-demo
           requires:
             - test-cluster
