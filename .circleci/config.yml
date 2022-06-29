@@ -63,7 +63,8 @@ jobs:
             . capostoneenv/bin/activate
             cd green
             docker build -t prernaarora28/$IMAGE_NAME:green .
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password  Gaurav@2021
+            docker login -u prernaarora28 --password Gaurav@2021
+            # Pusing docker images to git hub
             docker push prernaarora28/$IMAGE_NAME:green
 
   create-cluster:
