@@ -53,17 +53,17 @@ jobs:
           command: |
             . capostoneenv/bin/activate
             cd blue
-            docker build -t mjgmora/$IMAGE_NAME:blue .
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-            docker push mjgmora/$IMAGE_NAME:blue
+            docker build -t prernaarora28/$IMAGE_NAME:blue .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password Gaurav@2021
+            docker push prernaarora28/$IMAGE_NAME:blue
       - run:
           name: Build and push green Docker image
           command: |
             . capostoneenv/bin/activate
             cd green
-            docker build -t mjgmora/$IMAGE_NAME:green .
-            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password-stdin
-            docker push mjgmora/$IMAGE_NAME:green
+            docker build -t prernaarora28/$IMAGE_NAME:green .
+            echo $DOCKER_PWD | docker login -u $DOCKER_LOGIN --password  Gaurav@2021
+            docker push prernaarora28/$IMAGE_NAME:green
 
   create-cluster:
     executor: aws-eks/python3
