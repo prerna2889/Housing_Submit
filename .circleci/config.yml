@@ -22,7 +22,7 @@ jobs:
             wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
             chmod +x ./hadolint
             ./hadolint Dockerfile
-            pylint --disable=R,C,W1203,W1202 capstone_hello_world.py
+            pylint --disable=R,C,W1203,W1202 housing.py
       - run:
           name: Lint green app
           command: |
@@ -31,7 +31,7 @@ jobs:
             wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
             chmod +x ./hadolint
             ./hadolint Dockerfile
-            pylint --disable=R,C,W1203,W1202 capstone_hello_world.py
+            pylint --disable=R,C,W1203,W1202 housing.py
   build-deploy-app:
     docker:
       - image: circleci/python:3.7.3-stretch
