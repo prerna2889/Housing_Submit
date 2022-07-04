@@ -13,8 +13,7 @@ jobs:
             echo 'export IMAGE_NAME=capstone_image' >> $BASH_ENV
             virtualenv capstone
             . capstone/bin/activate
-            # pip install --no-cache-dir -r requirements.txt
-            make install
+            pip install --no-cache-dir -r requirements.txt
       - run:
           name: Lint blue app
           command: |
