@@ -75,6 +75,9 @@ jobs:
           Name of the EKS cluster
         type: string
     steps:
+      - checkout
+      - aws-eks/install-aws-iam-authenticator:
+          release-tag: ''
       - run:
           name: Install the eksctl tool
           command: |
@@ -152,6 +155,7 @@ jobs:
             rmdir eksctl_download
       - aws-eks/delete-cluster:
           cluster-name: << parameters.cluster-name >>
+          node-type: t2.medium
 
 orbs:
   aws-eks: circleci/aws-eks@1.1.0
