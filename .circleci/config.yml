@@ -11,27 +11,30 @@ jobs:
           name: Setup python virtual environment
           command: |
             echo 'export IMAGE_NAME=capstone_image' >> $BASH_ENV
-            virtualenv capostoneenv
-            . capostoneenv/bin/activate
-            pip install --no-cache-dir -r requirements.txt
+            virtualenv capstone
+            . capstone/bin/activate
+            # pip install --no-cache-dir -r requirements.txt
+            make install
       - run:
           name: Lint blue app
           command: |
-            . capostoneenv/bin/activate
+            . capstone/bin/activate
             cd blue
-            wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            chmod +x ./hadolint
-            ./hadolint Dockerfile
-            pylint --disable=R,C,W1203,W1202 housing.py
+            # wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+            # chmod +x ./hadolint
+            # ./hadolint Dockerfile
+            # pylint --disable=R,C,W1203,W1202 housing.py
+            make lint
       - run:
           name: Lint green app
           command: |
-            . capostoneenv/bin/activate
+            . capstone/bin/activate
             cd green
-            wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            chmod +x ./hadolint
-            ./hadolint Dockerfile
-            pylint --disable=R,C,W1203,W1202 housing.py
+            # wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+            # chmod +x ./hadolint
+            # ./hadolint Dockerfile
+            # pylint --disable=R,C,W1203,W1202 housing.py
+            make lint
   build-deploy-app:
     docker:
       - image: circleci/python:3.7.3-stretch
@@ -43,15 +46,15 @@ jobs:
           name: Setup python virtual environment
           command: |
             echo 'export IMAGE_NAME=capstone' >> $BASH_ENV
-            virtualenv capostoneenv
-            . capostoneenv/bin/activate
+            virtualenv capstone
+            . capstone/bin/activate
             pip install --no-cache-dir -r requirements.txt
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
           name: Build and push blue Docker image
           command: |
-            . capostoneenv/bin/activate
+            . capstone/bin/activate
             cd blue
             docker build -t prernaarora28/$IMAGE_NAME:blue .
             docker login -u prernaarora28 --password Gaurav@2021
@@ -60,7 +63,7 @@ jobs:
       - run:
           name: Build and push green Docker image
           command: |
-            . capostoneenv/bin/activate
+            . capstone/bin/activate
             cd green
             docker build -t prernaarora28/$IMAGE_NAME:green .
             docker login -u prernaarora28 --password Gaurav@2021
