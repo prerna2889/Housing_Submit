@@ -95,8 +95,11 @@ jobs:
             fi
             $SUDO mv eksctl_download/eksctl /usr/local/bin/
             rmdir eksctl_download
+            echo "complete"
       - aws-eks/create-cluster:
           cluster-name: << parameters.cluster-name >>
+          node-type: t2.medium
+  
   test-cluster:
     executor: aws-eks/python3
     parameters:
@@ -155,7 +158,6 @@ jobs:
             rmdir eksctl_download
       - aws-eks/delete-cluster:
           cluster-name: << parameters.cluster-name >>
-          node-type: t2.medium
 
 orbs:
   aws-eks: circleci/aws-eks@1.1.0
