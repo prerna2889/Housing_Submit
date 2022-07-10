@@ -15,7 +15,11 @@ jobs:
             python3 -m venv ~/.capstone
             . capstone/bin/activate
             make install
-            pip install --no-cache-dir -r requirements.txt
+            #pip install --no-cache-dir -r requirements.txt
+      - save_cache:
+          paths:
+            - .~/.capstone
+          key: v1-dependencies-{{ checksum "requirements.txt" }}
       - run:
           name: Lint blue app
           command: |
