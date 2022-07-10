@@ -41,10 +41,12 @@ jobs:
             cd green
             make lint
   build-deploy-app:
-    docker:
-      - image: circleci/python:3.7.3-stretch
-        environment:
-          FLASK_CONFIG: testing
+    machine: true
+    working_directory: ~/repo
+    #docker:
+    #  - image: circleci/python:3.7.3-stretch
+    #    environment:
+    #      FLASK_CONFIG: testing
     steps:
       - checkout
       #- run:
@@ -54,13 +56,13 @@ jobs:
             #virtualenv capstone
             #. capstone/bin/activate
             #pip install --no-cache-dir -r requirements.txt
-      - setup_remote_docker:
-          docker_layer_caching: true
+      #- setup_remote_docker:
+      #    docker_layer_caching: true
       - run:
           name: Build and push blue Docker image
           command: |
-            python3 -m venv capstone
-            . capstone/bin/activate
+            #python3 -m venv capstone
+            #. capstone/bin/activate
             cd blue
             docker build -t prernaarora28/$IMAGE_NAME:blue .
             docker login -u prernaarora28 --password Gaurav@2021
