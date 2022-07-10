@@ -31,24 +31,14 @@ jobs:
       - run:
           name: Lint blue app
           command: |
-            #python3 -m venv ~/.capstone
             . capstone/bin/activate
-            #. ~/.capstone/bin/activate
             cd blue
-            #sudo wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            #chmod +x ./hadolint
-            # ./hadolint Dockerfile
-            # pylint --disable=R,C,W1203,W1202 housing.py
             make lint
       - run:
           name: Lint green app
           command: |
             . capstone/bin/activate
             cd green
-            # wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            # chmod +x ./hadolint
-            # ./hadolint Dockerfile
-            # pylint --disable=R,C,W1203,W1202 housing.py
             make lint
   build-deploy-app:
     docker:
@@ -57,13 +47,13 @@ jobs:
           FLASK_CONFIG: testing
     steps:
       - checkout
-      - run:
-          name: Setup python virtual environment
-          command: |
-            echo 'export IMAGE_NAME=capstone' >> $BASH_ENV
-            virtualenv capstone
-            . capstone/bin/activate
-            pip install --no-cache-dir -r requirements.txt
+      #- run:
+          #name: Setup python virtual environment
+          #command: |
+            #echo 'export IMAGE_NAME=capstone' >> $BASH_ENV
+            #virtualenv capstone
+            #. capstone/bin/activate
+            #pip install --no-cache-dir -r requirements.txt
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
