@@ -57,14 +57,12 @@ jobs:
       - run:
           name: Build and push blue Docker image
           command: |
-            echo 'export IMAGE_NAME=capstone' >> $BASH_ENV 
-            virtualenv capstone
+            python3 -m venv capstone
             . capstone/bin/activate
-            #pip install --no-cache-dir -r requirements.txt
             cd blue
             docker build -t prernaarora28/$IMAGE_NAME:blue .
             docker login -u prernaarora28 --password Gaurav@2021
-            # Pusing docker images to git  hub
+            # Pusing docker images to git hub
             docker push prernaarora28/$IMAGE_NAME:blue
       - run:
           name: Build and push green Docker image
