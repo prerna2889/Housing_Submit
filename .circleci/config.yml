@@ -11,8 +11,8 @@ jobs:
           name: Setup python virtual environment
           command: |
             echo 'export IMAGE_NAME=capstone_image' >> $BASH_ENV
+            virtualenv capstone
             python3 -m venv ~/.capstone
-            #virtualenv capstone
             . capstone/bin/activate
             make install
             pip install --no-cache-dir -r requirements.txt
