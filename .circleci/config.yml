@@ -49,6 +49,7 @@ jobs:
       - run:
           name: Setup python virtual environment
           command: |
+            echo 'export IMAGE_NAME=capstone' >> $BASH_ENV
             virtualenv capstone
             . capstone/bin/activate
             pip install --no-cache-dir -r requirements.txt
@@ -62,7 +63,7 @@ jobs:
             cd blue
             docker build -t prernaarora28/$IMAGE_NAME:blue .
             docker login -u prernaarora28 --password Gaurav@2021
-            # Pusing docker images to git hub
+            # Pusing docker images to git  hub
             docker push prernaarora28/$IMAGE_NAME:blue
       - run:
           name: Build and push green Docker image
@@ -73,7 +74,6 @@ jobs:
             docker login -u prernaarora28 --password Gaurav@2021
             # Pusing docker images to git hub
             docker push prernaarora28/$IMAGE_NAME:green
-
   create-cluster:
     executor: aws-eks/python3
     parameters:
