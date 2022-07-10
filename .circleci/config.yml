@@ -32,8 +32,8 @@ jobs:
           name: Lint blue app
           command: |
             #python3 -m venv ~/.capstone
-            #. capstone/bin/activate
-            . ~/.capstone/bin/activate
+            . capstone/bin/activate
+            #. ~/.capstone/bin/activate
             cd blue
             #sudo wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
             #chmod +x ./hadolint
