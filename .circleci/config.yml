@@ -21,23 +21,20 @@ jobs:
       - run:
           name: install dependencies
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
+            python3 -m venv capstone
+            . capstone/bin/activate
             cd blue
             make install
-            # Install hadolint
-            #sudo wget -O /bin/hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            #sudo chmod +x /bin/hadolint
       - run:
           name: Lint blue app
           command: |
-            . venv/bin/activate
+            . capstone/bin/activate
             cd blue
             make lint
       - run:
           name: Lint green app
           command: |
-            . venv/bin/activate
+            . capstone/bin/activate
             cd green
             make lint
   build-deploy-app:
@@ -50,16 +47,16 @@ jobs:
       - run:
           name: Setup python virtual environment
           command: |
-            virtualenv venv
-            . venv/bin/activate
+            virtualenv capstone
+            . capstone/bin/activate
             pip install --no-cache-dir -r requirements.txt
       - setup_remote_docker:
           docker_layer_caching: true
       - run:
           name: Build and push blue Docker image
           command: |
-            python3 -m venv venv
-            . venv/bin/activate
+            python3 -m venv capstone
+            . capstone/bin/activate
             cd blue
             docker build -t prernaarora28/$IMAGE_NAME:blue .
             docker login -u prernaarora28 --password Gaurav@2021
@@ -68,7 +65,7 @@ jobs:
       - run:
           name: Build and push green Docker image
           command: |
-            . venv/bin/activate
+            . capstone/bin/activate
             cd green
             docker build -t prernaarora28/$IMAGE_NAME:green .
             docker login -u prernaarora28 --password Gaurav@2021
