@@ -4,25 +4,26 @@ jobs:
       - image: circleci/python:3.7.3-stretch
         environment:
           FLASK_CONFIG: testing
-    working_directory: ~/app
+    working_directory: ~/repo
     steps:
       - checkout
       - run:
           name: Setup python virtual environment
           command: |
             echo 'export IMAGE_NAME=capstone_image' >> $BASH_ENV
-            virtualenv capstone
+            python3 -m venv ~/.capstone
+            #virtualenv capstone
             . capstone/bin/activate
-            pip install --no-cache-dir -r requirements.txt
             make install
+            pip install --no-cache-dir -r requirements.txt
       - run:
           name: Lint blue app
           command: |
             #python3 -m venv ~/.capstone
             #. capstone/bin/activate
             cd blue
-            # wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
-            # chmod +x ./hadolint
+            wget -O ./hadolint https://github.com/hadolint/hadolint/releases/download/v1.16.3/hadolint-Linux-x86_64 &&\
+            chmod +x ./hadolint
             # ./hadolint Dockerfile
             # pylint --disable=R,C,W1203,W1202 housing.py
             make lint
