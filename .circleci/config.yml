@@ -59,6 +59,7 @@ jobs:
       - run:
           name: Build and push blue Docker image
           command: |
+            python3 -m venv capstone
             . capstone/bin/activate
             cd blue
             docker build -t prernaarora28/$IMAGE_NAME:blue .
