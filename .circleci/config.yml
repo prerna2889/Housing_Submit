@@ -1,26 +1,188 @@
-# Use the latest 2.1 version of CircleCI pipeline process engine.
-# See: https://circleci.com/docs/2.0/configuration-reference
-version: 2.1
-
-# Define a job to be invoked later in a workflow.
-# See: https://circleci.com/docs/2.0/configuration-reference/#jobs
 jobs:
-  say-hello:
-    # Specify the execution environment. You can specify an image from Dockerhub or use one of our Convenience Images from CircleCI's Developer Hub.
-    # See: https://circleci.com/docs/2.0/configuration-reference/#docker-machine-macos-windows-executor
+  lint-docker:
     docker:
-      - image: cimg/base:stable
-    # Add steps to the job
-    # See: https://circleci.com/docs/2.0/configuration-reference/#steps
+      - image: circleci/python:3.7.3-stretch
+        environment:
+          FLASK_CONFIG: testing
+    working_directory: ~/repo
+    steps:
+      - checkout
+      # Download and cache dependencies
+      - run:
+          name: test
+          command: |
+            ls
+            pwd
+      - restore_cache:
+          keys:
+          - v1-dependencies-{{ checksum "requirements.txt" }}
+          # fallback to using the latest cache if no exact match is found
+          - v1-dependencies-
+      - run:
+          name: install dependencies
+          command: |
+            python3 -m venv capstone
+            . capstone/bin/activate
+      - run:
+          name: Lint blue
+          command: |
+            . capstone/bin/activate
+            cd blue
+            make install
+            make lint
+      - run:
+          name: Lint green
+          command: |
+            . capstone/bin/activate
+            cd green
+            make install
+            make lint
+
+  deploy-app:
+    docker:
+      - image: circleci/python:3.7.3-stretch
+        environment:
+          FLASK_CONFIG: testing
     steps:
       - checkout
       - run:
-          name: "Say hello"
-          command: "echo Hello, World!"
+          name: Setup python virtual environment
+          command: |
+            echo 'export IMAGE_NAME=capstone' >> $BASH_ENV
+            virtualenv capstone
+            . capstone/bin/activate
+            pip install --no-cache-dir -r requirements.txt
+      - setup_remote_docker:
+          docker_layer_caching: true
+      - run:
+          name: Build and push blue Docker image
+          command: |
+            python3 -m venv capstone
+            . capstone/bin/activate
+            cd blue
+            docker build -t prernaarora28/$IMAGE_NAME:blue .
+            docker login -u prernaarora28 --password Gaurav@2021
+            docker push prernaarora28/$IMAGE_NAME:blue
+      - run:
+          name: Build and push green Docker image
+          command: |
+            . capstone/bin/activate
+            cd green
+            docker build -t prernaarora28/$IMAGE_NAME:green .
+            docker login -u prernaarora28 --password Gaurav@2021
+            docker push prernaarora28/$IMAGE_NAME:green
 
-# Invoke jobs via workflows
-# See: https://circleci.com/docs/2.0/configuration-reference/#workflows
+  create-cluster:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+    steps:
+      - checkout
+      - aws-eks/install-aws-iam-authenticator:
+          release-tag: ''
+      - run:
+          name: Install the eksctl tool
+          command: |
+            if which eksctl > /dev/null; then
+              exit 0
+            fi
+            mkdir -p eksctl_download
+            curl --silent --location --retry 5 "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" \
+              | tar xz -C eksctl_download
+            chmod +x eksctl_download/eksctl
+            SUDO=""
+            if [ $(id -u) -ne 0 ] && which sudo > /dev/null ; then
+              SUDO="sudo"
+            fi
+            $SUDO mv eksctl_download/eksctl /usr/local/bin/
+            rmdir eksctl_download
+      - aws-eks/create-cluster:
+          cluster-name: << parameters.cluster-name >>
+          node-type: t2.medium
+
+  test-cluster:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+    steps:
+      - checkout
+      - kubernetes/install
+      - aws-eks/update-kubeconfig-with-authenticator:
+          cluster-name: << parameters.cluster-name >>
+      - run:
+          name: Deploy blue app in cluster
+          command: |
+            cd blue
+            ./run_kubernetes.sh
+      - run:
+          command: |
+            sleep 60 && kubectl get all && sleep 60
+          name: Test blue app in cluster
+      - run:
+          name: Deploy green app in cluster
+          command: |
+            cd green
+            ./run_kubernetes.sh
+      - run:
+          command: |
+            sleep 60 && kubectl get all && sleep 60
+          name: Test green app in cluster
+
+  delete-cluster:
+    executor: aws-eks/python3
+    parameters:
+      cluster-name:
+        description: |
+          Name of the EKS cluster
+        type: string
+
+    steps:
+      - run:
+          name: Install the eksctl tool
+          command: |
+            if which eksctl > /dev/null; then
+              echo "eksctl is already installed"
+              exit 0
+            fi
+            mkdir -p eksctl_download
+            curl --silent --location --retry 5 "https://github.com/weaveworks/eksctl/releases/latest/download/eksctl_$(uname -s)_amd64.tar.gz" \
+              | tar xz -C eksctl_download
+            chmod +x eksctl_download/eksctl
+            SUDO=""
+            if [ $(id -u) -ne 0 ] && which sudo > /dev/null ; then
+              SUDO="sudo"
+            fi
+            $SUDO mv eksctl_download/eksctl /usr/local/bin/
+            rmdir eksctl_download
+      - aws-eks/delete-cluster:
+          cluster-name: << parameters.cluster-name >>
+
+orbs:
+  aws-eks: circleci/aws-eks@1.1.0
+  kubernetes: circleci/kubernetes@0.4.0
+version: 2.1
 workflows:
-  say-hello-workflow:
+  deployment:
     jobs:
-      - say-hello
+      - lint-docker
+      - deploy-app:
+          requires:
+            - lint-docker
+      - create-cluster:
+          cluster-name: my-eks-demo
+          requires:
+            - deploy-app
+      - test-cluster:
+          cluster-name: my-eks-demo
+          requires:
+            - create-cluster
+      #- delete-cluster:
+      #    cluster-name: my-eks-demo
+      #    requires:
+      #      - test-cluster
