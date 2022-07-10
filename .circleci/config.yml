@@ -23,19 +23,21 @@ jobs:
           command: |
             python3 -m venv capstone
             . capstone/bin/activate
-            cd blue
-            make install
+            #cd blue
+            #make install
       - run:
           name: Lint blue app
           command: |
             . capstone/bin/activate
             cd blue
+            make install
             make lint
       - run:
           name: Lint green app
           command: |
             . capstone/bin/activate
             cd green
+            make install
             make lint
   build-deploy-app:
     docker:
@@ -55,8 +57,10 @@ jobs:
       - run:
           name: Build and push blue Docker image
           command: |
-            python3 -m venv capstone
+            echo 'export IMAGE_NAME=capstone' >> $BASH_ENV 
+            virtualenv capstone
             . capstone/bin/activate
+            #pip install --no-cache-dir -r requirements.txt
             cd blue
             docker build -t prernaarora28/$IMAGE_NAME:blue .
             docker login -u prernaarora28 --password Gaurav@2021
